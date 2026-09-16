@@ -111,31 +111,37 @@ const userSchema = new mongoose.Schema({
         type: Array,
         default: [
             {
+                projectId: 'cryptopulse',
                 title: 'CryptoPulse - Real-time Trading Dashboard',
                 badge: 'Flutter & Web',
                 description: 'High-frequency crypto market tracker featuring 120 FPS WebSocket candlestick charts, portfolio analytics, and biometrics authentication.',
                 image: '/img/app_showcase.png',
                 tags: ['Flutter 3.x', 'Riverpod', 'WebSockets', 'Node.js'],
                 playStoreLink: 'https://play.google.com/store/apps',
-                appStoreLink: 'https://apps.apple.com/app'
+                appStoreLink: 'https://apps.apple.com/app',
+                privacyPolicy: '<h2>Privacy Policy for CryptoPulse</h2><p>Your privacy is important to us...</p>'
             },
             {
+                projectId: 'healthhub',
                 title: 'HealthHub - Telemedicine & Vital Sync',
                 badge: 'Mobile App',
                 description: 'Cross-platform mobile application providing HIPAA-compliant video consultations, Bluetooth medical device data sync, and instant prescription delivery.',
                 image: '/img/app_showcase.png',
                 tags: ['Flutter', 'flutter_bloc', 'Firebase', 'WebRTC'],
                 playStoreLink: 'https://play.google.com/store/apps',
-                appStoreLink: 'https://apps.apple.com/app'
+                appStoreLink: 'https://apps.apple.com/app',
+                privacyPolicy: '<h2>Privacy Policy for HealthHub</h2><p>Your privacy is important to us...</p>'
             },
             {
+                projectId: 'logitrack',
                 title: 'LogiTrack - Enterprise Fleet Management',
                 badge: 'Enterprise System',
                 description: 'Real-time GPS fleet tracking application with offline route calculation, driver safety metrics, and automated background sync.',
                 image: '/img/app_showcase.png',
                 tags: ['Flutter', 'Google Maps API', 'Express', 'MongoDB'],
                 playStoreLink: 'https://play.google.com/store/apps',
-                appStoreLink: 'https://apps.apple.com/app'
+                appStoreLink: 'https://apps.apple.com/app',
+                privacyPolicy: '<h2>Privacy Policy for LogiTrack</h2><p>Your privacy is important to us...</p>'
             }
         ]
     },

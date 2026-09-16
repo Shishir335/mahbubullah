@@ -414,6 +414,14 @@ document.addEventListener('DOMContentLoaded', () => {
               <input type="text" class="proj-input-appstore" data-index="${index}" value="${escapeHtml(proj.appStoreLink || (proj.demoLink && proj.demoLink.includes('apple') ? proj.demoLink : '') || '')}" placeholder="https://apps.apple.com/app/..." style="width: 100%; padding: 8px 12px; border-radius: 6px; background: #090d16; border: 1px solid var(--border-color); color: #fff; font-size: 0.9rem; margin-top: 4px;">
             </div>
           </div>
+          <div>
+            <label style="font-size: 0.8rem; color: var(--text-muted);">Project ID (For Privacy Policy URL, e.g. "cryptopulse")</label>
+            <input type="text" class="proj-input-id" data-index="${index}" value="${escapeHtml(proj.projectId || '')}" placeholder="e.g. cryptopulse" style="width: 100%; padding: 8px 12px; border-radius: 6px; background: #090d16; border: 1px solid var(--border-color); color: #fff; font-size: 0.9rem; margin-top: 4px;">
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; color: var(--text-muted);">Privacy Policy (HTML or Text)</label>
+            <textarea class="proj-input-privacypolicy" data-index="${index}" rows="4" placeholder="Enter privacy policy text or HTML..." style="width: 100%; padding: 8px 12px; border-radius: 6px; background: #090d16; border: 1px solid var(--border-color); color: #fff; font-size: 0.9rem; margin-top: 4px; resize: vertical;">${escapeHtml(proj.privacyPolicy || '')}</textarea>
+          </div>
         </div>
       `;
 
@@ -465,13 +473,15 @@ document.addEventListener('DOMContentLoaded', () => {
     addProjectBtn.addEventListener('click', () => {
       currentProjects = collectProjectsData(true);
       currentProjects.push({
+        projectId: 'newproject',
         title: 'New Featured Project',
         badge: 'Mobile App',
         description: 'Describe application architecture and features...',
         image: '/img/app_showcase.png',
         tags: ['Flutter', 'Riverpod'],
         playStoreLink: 'https://play.google.com/store/apps',
-        appStoreLink: 'https://apps.apple.com/app'
+        appStoreLink: 'https://apps.apple.com/app',
+        privacyPolicy: '<h2>Privacy Policy</h2><p>Content goes here...</p>'
       });
       renderProjectsEditor();
     });
@@ -485,6 +495,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInputs = document.querySelectorAll('.proj-input-image');
     const playStoreInputs = document.querySelectorAll('.proj-input-playstore');
     const appStoreInputs = document.querySelectorAll('.proj-input-appstore');
+    const projectIdInputs = document.querySelectorAll('.proj-input-id');
+    const privacyPolicyInputs = document.querySelectorAll('.proj-input-privacypolicy');
 
     const updatedProjects = [];
     titleInputs.forEach((input, index) => {
@@ -497,16 +509,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const image = imageVal || '/img/app_showcase.png';
       const playStoreLink = playStoreInputs[index] ? playStoreInputs[index].value.trim() : '';
       const appStoreLink = appStoreInputs[index] ? appStoreInputs[index].value.trim() : '';
+      const projectId = projectIdInputs[index] ? projectIdInputs[index].value.trim() : '';
+      const privacyPolicy = privacyPolicyInputs[index] ? privacyPolicyInputs[index].value.trim() : '';
 
       if (includeAll || title) {
         updatedProjects.push({
+          projectId,
           title,
           badge,
           description,
           image,
           tags,
           playStoreLink,
-          appStoreLink
+          appStoreLink,
+          privacyPolicy
         });
       }
     });

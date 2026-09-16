@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | Flutter Developer Portfolio</title>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .privacy-policy-container {
+      max-width: 800px;
+      margin: 120px auto 60px;
+      padding: 40px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .privacy-policy-container h1, .privacy-policy-container h2, .privacy-policy-container h3 {
+      color: #fff;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+    .privacy-policy-container p {
+      margin-bottom: 16px;
+    }
+    .loader {
+      text-align: center;
+      padding: 40px;
+    }
+    .error-msg {
+      color: #ef4444;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar scrolled">
+    <div class="container nav-content">
+      <a href="/" class="logo">
+        <span class="logo-icon"></span>
+        Flutter<span>Dev</span>
+      </a>
+      <a href="/" class="btn btn-outline" style="padding: 8px 16px; font-size: 0.85rem;">
+        <i class="fa-solid fa-house"></i> View Website
+      </a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="privacy-policy-container" id="privacy-policy-content">
+      <div class="loader">
+        <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+        <p style="margin-top: 10px;">Loading Privacy Policy...</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <p id="footer-text-display">© 2026 Flutter Developer Portfolio. Built with Flutter, Dart, Node.js & Express.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const contentDiv = document.getElementById('privacy-policy-content');
+      
+      // Extract project ID from URL (e.g. /cryptopulse/privacy-policy)
+      const pathParts = window.location.pathname.split('/');
+      const projectId = pathParts[1];
+      
+      if (!projectId) {
+        contentDiv.innerHTML = '<div class="error-msg">Project ID not found in URL.</div>';
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/v1/admin/public-profile');
+        const data = await res.json();
+        
+        if (res.ok && data.status === 'success') {
+          const user = data.data;
+          
+          if (user.footerText) {
+            const footerDisplay = document.getElementById('footer-text-display');
+            if (footerDisplay) footerDisplay.textContent = user.footerText;
+          }
+          
+          const projects = user.projects || [];
+          const project = projects.find(p => p.projectId && p.projectId.toLowerCase() === projectId.toLowerCase());
+          
+          if (project) {
+            document.title = `Privacy Policy - ${project.title}`;
+            if (project.privacyPolicy) {
+              // Convert newlines to breaks if it's plain text, or just inject HTML
+              contentDiv.innerHTML = project.privacyPolicy;
+            } else {
+              contentDiv.innerHTML = `<h2>Privacy Policy for ${project.title}</h2><p>No privacy policy has been provided for this project yet.</p>`;
+            }
+          } else {
+            contentDiv.innerHTML = `<div class="error-msg">Project with ID "${projectId}" not found.</div>`;
+          }
+        } else {
+          contentDiv.innerHTML = '<div class="error-msg">Failed to load project data.</div>';
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        contentDiv.innerHTML = '<div class="error-msg">An error occurred while loading the privacy policy.</div>';
+      }
+    });
+  </script>
+</body>
+</html>
