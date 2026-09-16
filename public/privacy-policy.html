@@ -74,7 +74,7 @@
   </footer>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    (async function loadPrivacyPolicy() {
       const contentDiv = document.getElementById('privacy-policy-content');
       
       // Extract project ID from URL (e.g. /cryptopulse/privacy-policy)
@@ -125,7 +125,7 @@
         console.error('Error fetching profile:', err);
         contentDiv.innerHTML = '<div class="error-msg">An error occurred while loading the privacy policy.</div>';
       }
-    });
+    })();
   </script>
 </body>
 </html>
