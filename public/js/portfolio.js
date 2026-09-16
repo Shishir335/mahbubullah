@@ -186,16 +186,18 @@ document.addEventListener('DOMContentLoaded', () => {
                   storeButtonsHtml += `<a href="${appStore}" target="_blank" rel="noopener" class="btn-store btn-appstore"><i class="fa-brands fa-apple"></i> App Store</a>`;
                 }
 
-                let privacyPolicyHtml = '';
-                if (proj.projectId) {
-                  privacyPolicyHtml = `
-                    <div style="margin-top: 12px; display: flex; justify-content: center;">
-                      <a href="/${proj.projectId}/privacy-policy" target="_blank" rel="noopener" class="btn-store btn-privacypolicy" style="background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
-                        <i class="fa-solid fa-shield-halved"></i> Privacy Policy
-                      </a>
-                    </div>
-                  `;
+                let pId = proj.projectId;
+                if (!pId && proj.title) {
+                  pId = proj.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
                 }
+                
+                let privacyPolicyHtml = `
+                  <div style="margin-top: 12px; display: flex; justify-content: center; width: 100%;">
+                    <a href="/${pId || 'project'}/privacy-policy" target="_blank" rel="noopener" class="btn-store btn-privacypolicy" style="background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
+                      <i class="fa-solid fa-shield-halved"></i> Privacy Policy
+                    </a>
+                  </div>
+                `;
 
                 card.innerHTML = `
                   <div class="project-img-wrapper">

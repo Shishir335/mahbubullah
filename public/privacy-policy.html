@@ -99,7 +99,13 @@
           }
           
           const projects = user.projects || [];
-          const project = projects.find(p => p.projectId && p.projectId.toLowerCase() === projectId.toLowerCase());
+          const project = projects.find(p => {
+            let pId = p.projectId;
+            if (!pId && p.title) {
+              pId = p.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            }
+            return pId && pId.toLowerCase() === projectId.toLowerCase();
+          });
           
           if (project) {
             document.title = `Privacy Policy - ${project.title}`;
