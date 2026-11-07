@@ -1,16 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
-let sharp;
-try {
-    sharp = require('sharp');
-} catch (e) {
-    sharp = null;
-}
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const cache = require('../utils/cache');
+
+let sharp;
+try {
+    // eslint-disable-next-line global-require
+    sharp = require('sharp');
+} catch (e) {
+    sharp = null;
+}
 
 // Ensure an initial admin account exists for easy login
 const ensureDefaultAdmin = async () => {
@@ -92,27 +95,29 @@ exports.resizeProfilePhoto = catchAsync(async (req, res, next) => {
             }
         }
 
-        for (const file of projectFiles) {
-            const index = parseInt(file.fieldname.replace('project_image_', ''), 10);
-            if (!isNaN(index) && projects[index]) {
-                try {
-                    let base64Image = '';
-                    if (sharp) {
-                        const buffer = await sharp(file.buffer)
-                            .resize(800, 520, { fit: 'cover' })
-                            .toFormat('jpeg')
-                            .jpeg({ quality: 80 })
-                            .toBuffer();
-                        base64Image = `data:image/jpeg;base64,${buffer.toString('base64')}`;
-                    } else {
-                        base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        await Promise.all(
+            projectFiles.map(async file => {
+                const index = Number.parseInt(file.fieldname.replace('project_image_', ''), 10);
+                if (!Number.isNaN(index) && projects[index]) {
+                    try {
+                        let base64Image = '';
+                        if (sharp) {
+                            const buffer = await sharp(file.buffer)
+                                .resize(800, 520, { fit: 'cover' })
+                                .toFormat('jpeg')
+                                .jpeg({ quality: 80 })
+                                .toBuffer();
+                            base64Image = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+                        } else {
+                            base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+                        }
+                        projects[index].image = base64Image;
+                    } catch (err) {
+                        console.error('Error processing project image:', err);
                     }
-                    projects[index].image = base64Image;
-                } catch (err) {
-                    console.error('Error processing project image:', err);
                 }
-            }
-        }
+            })
+        );
 
         req.body.projects = JSON.stringify(projects);
     }
@@ -163,6 +168,7 @@ exports.loginAdmin = catchAsync(async (req, res, next) => {
 });
 
 exports.getProfile = catchAsync(async (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     const user = await User.findById(req.user.id);
 
     const customAvatarPath = path.join(__dirname, '..', 'public', 'img', 'users', 'custom-avatar.jpg');
@@ -267,6 +273,9 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
         runValidators: true
     });
 
+    // Invalidate public profile server cache on update
+    cache.del('public-profile');
+
     const customAvatarPath = path.join(__dirname, '..', 'public', 'img', 'users', 'custom-avatar.jpg');
     let photoUrl = updatedUser.photo;
     if (fs.existsSync(customAvatarPath)) {
@@ -315,7 +324,18 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
 });
 
 exports.getPublicProfile = catchAsync(async (req, res, next) => {
-    // Find most recently updated admin user or active user
+    // 1. Check server-side in-memory cache
+    const cachedProfile = cache.get('public-profile');
+    if (cachedProfile && req.headers['cache-control'] !== 'no-cache') {
+        res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        res.setHeader('X-Cache', 'HIT');
+        return res.status(200).json({
+            status: 'success',
+            data: cachedProfile
+        });
+    }
+
+    // 2. Query DB if cache miss
     let user = await User.findOne({ role: 'admin' }).sort({ updatedAt: -1, _id: -1 });
     if (!user) {
         user = await User.findOne().sort({ updatedAt: -1, _id: -1 });
@@ -323,39 +343,50 @@ exports.getPublicProfile = catchAsync(async (req, res, next) => {
 
     const customAvatarPath = path.join(__dirname, '..', 'public', 'img', 'users', 'custom-avatar.jpg');
     const hasCustomFile = fs.existsSync(customAvatarPath);
-    const photoUrl = hasCustomFile
-        ? `/img/users/custom-avatar.jpg?t=${Date.now()}`
-        : (user && user.photo && user.photo !== 'profile.png' ? user.photo : '/img/avatar.png');
+    let photoUrl = '/img/avatar.png';
+    if (hasCustomFile) {
+        photoUrl = `/img/users/custom-avatar.jpg?t=${Date.now()}`;
+    } else if (user && user.photo && user.photo !== 'profile.png') {
+        photoUrl = user.photo;
+    }
+
+    const profileData = {
+        name: user ? user.name : 'Flutter Developer',
+        photo: photoUrl,
+        birthDate: user && user.birthDate ? user.birthDate.toISOString().split('T')[0] : '',
+        gender: user && user.gender ? user.gender : 'prefer-not-to-say',
+        aboutBadge: user && user.aboutBadge ? user.aboutBadge : 'Available for Senior Flutter & Mobile Engineering Roles',
+        aboutTitle: user && user.aboutTitle ? user.aboutTitle : 'Crafting 60 FPS Cross-Platform Mobile Apps',
+        aboutBio: user && user.aboutBio ? user.aboutBio : 'Senior Flutter & Dart Developer specializing in pixel-perfect UI, clean architecture, Riverpod/BLoC state management, and seamless Node.js REST API integrations for iOS, Android & Web.',
+        widget1Title: user && user.widget1Title ? user.widget1Title : 'Flutter 3.x',
+        widget1Subtitle: user && user.widget1Subtitle ? user.widget1Subtitle : 'Dart & Impeller Engine',
+        widget2Title: user && user.widget2Title ? user.widget2Title : 'Clean Architecture',
+        widget2Subtitle: user && user.widget2Subtitle ? user.widget2Subtitle : 'Riverpod / BLoC Pattern',
+        careerStartDate: user && user.careerStartDate ? user.careerStartDate.toISOString().split('T')[0] : '',
+        socialLinks: user && user.socialLinks ? user.socialLinks : {
+            github: 'https://github.com',
+            linkedin: 'https://linkedin.com',
+            facebook: 'https://facebook.com',
+            whatsapp: 'https://wa.me/1234567890',
+            email: 'mahbub@gmail.com'
+        },
+        footerText: user && user.footerText ? user.footerText : '© 2026 Flutter Developer Portfolio. Built with Flutter, Dart, Node.js & Express.',
+        statApps: user && user.statApps ? user.statApps : '25+',
+        statCrashFree: user && user.statCrashFree ? user.statCrashFree : '99.9%',
+        statUsers: user && user.statUsers ? user.statUsers : '100k+',
+        skills: user && user.skills ? user.skills : [],
+        projects: user && user.projects ? user.projects : [],
+        experiences: user && user.experiences ? user.experiences : []
+    };
+
+    // Store in cache for 10 minutes (600 seconds)
+    cache.set('public-profile', profileData, 600);
+
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('X-Cache', 'MISS');
 
     res.status(200).json({
         status: 'success',
-        data: {
-            name: user ? user.name : 'Flutter Developer',
-            photo: photoUrl,
-            birthDate: user && user.birthDate ? user.birthDate.toISOString().split('T')[0] : '',
-            gender: user && user.gender ? user.gender : 'prefer-not-to-say',
-            aboutBadge: user && user.aboutBadge ? user.aboutBadge : 'Available for Senior Flutter & Mobile Engineering Roles',
-            aboutTitle: user && user.aboutTitle ? user.aboutTitle : 'Crafting 60 FPS Cross-Platform Mobile Apps',
-            aboutBio: user && user.aboutBio ? user.aboutBio : 'Senior Flutter & Dart Developer specializing in pixel-perfect UI, clean architecture, Riverpod/BLoC state management, and seamless Node.js REST API integrations for iOS, Android & Web.',
-            widget1Title: user && user.widget1Title ? user.widget1Title : 'Flutter 3.x',
-            widget1Subtitle: user && user.widget1Subtitle ? user.widget1Subtitle : 'Dart & Impeller Engine',
-            widget2Title: user && user.widget2Title ? user.widget2Title : 'Clean Architecture',
-            widget2Subtitle: user && user.widget2Subtitle ? user.widget2Subtitle : 'Riverpod / BLoC Pattern',
-            careerStartDate: user && user.careerStartDate ? user.careerStartDate.toISOString().split('T')[0] : '',
-            socialLinks: user && user.socialLinks ? user.socialLinks : {
-                github: 'https://github.com',
-                linkedin: 'https://linkedin.com',
-                facebook: 'https://facebook.com',
-                whatsapp: 'https://wa.me/1234567890',
-                email: 'mahbub@gmail.com'
-            },
-            footerText: user && user.footerText ? user.footerText : '© 2026 Flutter Developer Portfolio. Built with Flutter, Dart, Node.js & Express.',
-            statApps: user && user.statApps ? user.statApps : '25+',
-            statCrashFree: user && user.statCrashFree ? user.statCrashFree : '99.9%',
-            statUsers: user && user.statUsers ? user.statUsers : '100k+',
-            skills: user && user.skills ? user.skills : [],
-            projects: user && user.projects ? user.projects : [],
-            experiences: user && user.experiences ? user.experiences : []
-        }
+        data: profileData
     });
 });

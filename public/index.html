@@ -296,6 +296,15 @@
 
   <!-- Portfolio Scripts -->
   <script src="/js/portfolio.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.debug('ServiceWorker registration error:', err);
+        });
+      });
+    }
+  </script>
 </body>
 
 </html>

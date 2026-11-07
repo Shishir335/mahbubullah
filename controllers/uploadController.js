@@ -1,14 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
+const cache = require('../utils/cache');
+
 let sharp;
 try {
+    // eslint-disable-next-line global-require
     sharp = require('sharp');
 } catch (e) {
     sharp = null;
 }
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
 
 const multerStorage = multer.memoryStorage();
 
@@ -65,6 +68,9 @@ exports.uploadAvatar = catchAsync(async (req, res, next) => {
         return next(new AppError('No photo provided. Please upload an image file.', 400));
     }
 
+    // Invalidate public profile server cache
+    cache.del('public-profile');
+
     res.status(200).json({
         status: 'success',
         message: 'Avatar uploaded successfully',
@@ -92,6 +98,9 @@ exports.resetAvatar = catchAsync(async (req, res, next) => {
     if (fs.existsSync(avatarPath)) {
         fs.unlinkSync(avatarPath);
     }
+
+    // Invalidate public profile server cache
+    cache.del('public-profile');
 
     res.status(200).json({
         status: 'success',

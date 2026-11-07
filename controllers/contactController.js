@@ -28,6 +28,7 @@ exports.createContactMessage = catchAsync(async (req, res, next) => {
 
 // Admin route: Get all contact messages
 exports.getContactMessages = catchAsync(async (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     const messages = await Contact.find().sort({ createdAt: -1 });
 
     res.status(200).json({

@@ -341,8 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
           title,
           description,
           tags,
-          icon: currentSkills[index]?.icon || 'fa-solid fa-code',
-          color: currentSkills[index]?.color || '#00D2FF'
+          icon: (currentSkills[index] && currentSkills[index].icon) || 'fa-solid fa-code',
+          color: (currentSkills[index] && currentSkills[index].color) || '#00D2FF'
         });
       }
     });
@@ -849,6 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           selectedPhotoFile = null;
           localStorage.removeItem('custom_avatar_data');
+          localStorage.removeItem('portfolio_public_profile_cache');
         } else {
           const errMsg = (data && data.message) ? data.message : `Failed to save changes (${res.status})`;
           showToast(errMsg, 'error');

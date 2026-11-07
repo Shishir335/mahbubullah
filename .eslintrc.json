@@ -1,4 +1,13 @@
 {
+    "env": {
+        "browser": true,
+        "node": true,
+        "es2021": true,
+        "serviceworker": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 2022
+    },
     "extends": ["airbnb", "prettier", "plugin:node/recommended"],
     "plugins": ["prettier"],
     "rules": {
@@ -15,6 +24,9 @@
         "class-methods-use-this": "off",
         "prefer-destructuring": ["warn", { "object": true, "array": false }],
         "no-unused-vars": ["warn", { "argsIgnorePattern": "req|res|next|val" }],
-        "node/no-unsupported-features/es-syntax": "off"
+        "node/no-unsupported-features/es-syntax": "off",
+        "no-use-before-define": "off",
+        "no-plusplus": "off",
+        "no-alert": "off"
     }   
 }

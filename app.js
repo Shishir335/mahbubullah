@@ -1,5 +1,10 @@
 const path = require('path');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: './config.env' });
+
 const express = require('express');
+const mongoose = require('mongoose');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
@@ -20,11 +25,19 @@ const app = express();
 // 1) GLOBAL MIDDLEWARES
 
 // SET SECURITY HTTP HEADERS
-app.use(helmet());
+app.use(
+    helmet({
+        contentSecurityPolicy: false,
+        crossOriginEmbedderPolicy: false
+    })
+);
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
+
+// COMPRESSION FOR ALL RESPONSES (STATIC AND DYNAMIC) - MUST BE BEFORE STATIC FILES
+app.use(compression());
 
 // USING THIS TO LIMIT THE API CALL FROM A SINGLE IP ADDRESS.
 const limiter = rateLimit({
@@ -48,10 +61,33 @@ app.use(xss());
 // PREVENT PARAMETER POLLUTION
 app.use(hpp());
 
-// SERVING STATIC FILE
-app.use(express.static(`${__dirname}/public`));
+// SERVING STATIC FILES WITH OPTIMIZED CACHING HEADERS
+const staticOptions = {
+    maxAge: '1d',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+            // HTML files: Revalidate immediately so changes are visible
+            res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+        } else if (filePath.endsWith('sw.js')) {
+            // Service Worker: Never aggressively cache
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else if (filePath.match(/\.(css|js)$/)) {
+            // CSS and JS: Cache for 1 day with stale-while-revalidate
+            res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+        } else if (filePath.match(/\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot)$/i)) {
+            // Images & Fonts: Cache for 7 days with stale-while-revalidate
+            res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+        } else {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+    }
+};
 
-app.use(compression());
+app.use(express.static(path.join(__dirname, 'public'), staticOptions));
+// Support /assets route alias pointing to public with matching caching
+app.use('/assets', express.static(path.join(__dirname, 'public'), staticOptions));
 
 // TEST MIDDLEWARE
 app.use((req, res, next) => {
@@ -62,14 +98,17 @@ app.use((req, res, next) => {
 // 3) ROUTES
 
 app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 app.get('/api/v1', (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     res.status(200).json({
         status: 'success',
         message: 'Welcome to Flutter Developer Portfolio & Admin API!',
@@ -87,6 +126,7 @@ app.use('/api/v1/upload-avatar', uploadRouter);
 app.use('/api/v1/admin', adminRouter);
 
 app.get('/:projectId/privacy-policy', (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
 });
 
@@ -95,11 +135,6 @@ app.all('*', (req, res, next) => {
 });
 
 app.use(globalErrorHandler);
-
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-
-dotenv.config({ path: './config.env' });
 
 const DB = process.env.DATABASE ? process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD) : "mongodb+srv://mahbubshishir973:mahbubullah@cluster0.3k09t.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 

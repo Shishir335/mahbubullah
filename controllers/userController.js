@@ -1,14 +1,17 @@
 const fs = require('fs');
 const multer = require('multer');
+const User = require('../models/userModel');
+const AppError = require('../utils/appError');
+const catchAsync = require('../utils/catchAsync');
+const cache = require('../utils/cache');
+
 let sharp;
 try {
+    // eslint-disable-next-line global-require
     sharp = require('sharp');
 } catch (e) {
     sharp = null;
 }
-const User = require("../models/userModel");
-const AppError = require("../utils/appError");
-const catchAsync = require("../utils/catchAsync");
 
 const multerStorage = multer.memoryStorage();
 
@@ -76,6 +79,8 @@ exports.updateMe = catchAsync(async (req, res, next) => {
         await User.findByIdAndUpdate(req.user.id, filteredBody,
             { new: true, runValidators: true });
 
+    cache.del('public-profile');
+
     res.status(200).json({
         status: 'success',
         data: updateUser
@@ -117,6 +122,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
 exports.createUser = catchAsync(async (req, res, next) => {
     const newUser = await User.create(req.body);
+    cache.del('public-profile');
     res.status(201).json({
         status: 'success',
         data: newUser
@@ -131,6 +137,7 @@ exports.updateUser = catchAsync(async (req, res, next) => {
     if (!user) {
         return next(new AppError('No user found with that ID', 404));
     }
+    cache.del('public-profile');
     res.status(200).json({
         status: 'success',
         data: user
@@ -142,6 +149,7 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
     if (!user) {
         return next(new AppError('No user found with that ID', 404));
     }
+    cache.del('public-profile');
     res.status(204).json({
         status: 'success',
         data: null
