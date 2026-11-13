@@ -11,6 +11,21 @@
     return;
   }
 
+  const decodeHtmlEntities = (str) => {
+    if (!str || typeof str !== 'string') return '';
+    let decoded = str;
+    for (let i = 0; i < 2; i += 1) {
+      if (decoded.includes('&lt;') || decoded.includes('&gt;') || decoded.includes('&quot;') || decoded.includes('&#039;') || decoded.includes('&amp;')) {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = decoded;
+        decoded = txt.value;
+      } else {
+        break;
+      }
+    }
+    return decoded;
+  };
+
   const renderPolicy = (user) => {
     if (!user) return false;
     if (user.footerText) {
@@ -29,8 +44,55 @@
     
     if (project) {
       document.title = `Privacy Policy - ${project.title}`;
-      if (project.privacyPolicy) {
-        contentDiv.innerHTML = project.privacyPolicy;
+      if (project.privacyPolicy && project.privacyPolicy.trim()) {
+        const rawPolicy = project.privacyPolicy.trim();
+        const decodedHtml = decodeHtmlEntities(rawPolicy);
+
+        // Check if user provided a full standalone HTML document
+        const isFullDocument = /<!DOCTYPE|<html|<head|<body/i.test(decodedHtml);
+
+        if (isFullDocument) {
+          // Reset default card styling so the full page renders naturally
+          contentDiv.style.background = 'transparent';
+          contentDiv.style.border = 'none';
+          contentDiv.style.padding = '0';
+          contentDiv.style.boxShadow = 'none';
+          contentDiv.style.maxWidth = '920px';
+
+          contentDiv.innerHTML = `
+            <iframe id="privacy-policy-frame" title="Privacy Policy" style="width: 100%; border: none; min-height: 800px; border-radius: 12px; display: block; background: transparent;" scrolling="no"></iframe>
+          `;
+
+          const frame = document.getElementById('privacy-policy-frame');
+          if (frame) {
+            frame.srcdoc = decodedHtml;
+
+            const resizeIframe = () => {
+              try {
+                if (frame.contentWindow && frame.contentWindow.document) {
+                  const doc = frame.contentWindow.document;
+                  const docHeight = Math.max(
+                    doc.body ? doc.body.scrollHeight : 0,
+                    doc.body ? doc.body.offsetHeight : 0,
+                    doc.documentElement ? doc.documentElement.scrollHeight : 0,
+                    doc.documentElement ? doc.documentElement.offsetHeight : 0
+                  );
+                  if (docHeight > 100) {
+                    frame.style.height = `${docHeight + 30}px`;
+                  }
+                }
+              } catch (e) {
+                frame.style.height = '1200px';
+              }
+            };
+
+            frame.addEventListener('load', resizeIframe);
+            setTimeout(resizeIframe, 300);
+            setTimeout(resizeIframe, 1000);
+          }
+        } else {
+          contentDiv.innerHTML = decodedHtml;
+        }
       } else {
         contentDiv.innerHTML = `<h2>Privacy Policy for ${project.title}</h2><p>No privacy policy has been provided for this project yet.</p>`;
       }

@@ -251,6 +251,21 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#039;');
   };
 
+  const decodeHtml = (str) => {
+    if (!str) return '';
+    let decoded = String(str);
+    for (let i = 0; i < 2; i += 1) {
+      if (decoded.includes('&lt;') || decoded.includes('&gt;') || decoded.includes('&amp;')) {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = decoded;
+        decoded = txt.value;
+      } else {
+        break;
+      }
+    }
+    return decoded;
+  };
+
   // Skills Section Editor
   let currentSkills = [];
   const skillsContainer = document.getElementById('admin-skills-editor-container');
@@ -420,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div>
             <label style="font-size: 0.8rem; color: var(--text-muted);">Privacy Policy (HTML or Text)</label>
-            <textarea class="proj-input-privacypolicy" data-index="${index}" rows="4" placeholder="Enter privacy policy text or HTML..." style="width: 100%; padding: 8px 12px; border-radius: 6px; background: #090d16; border: 1px solid var(--border-color); color: #fff; font-size: 0.9rem; margin-top: 4px; resize: vertical;">${escapeHtml(proj.privacyPolicy || '')}</textarea>
+            <textarea class="proj-input-privacypolicy" data-index="${index}" rows="4" placeholder="Enter privacy policy text or HTML..." style="width: 100%; padding: 8px 12px; border-radius: 6px; background: #090d16; border: 1px solid var(--border-color); color: #fff; font-size: 0.9rem; margin-top: 4px; resize: vertical;">${escapeHtml(decodeHtml(proj.privacyPolicy || ''))}</textarea>
           </div>
         </div>
       `;
