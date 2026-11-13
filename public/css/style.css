@@ -88,6 +88,14 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.navbar .container {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 24px !important;
+}
+
 .navbar.scrolled {
   padding: 12px 0;
   background: rgba(9, 13, 22, 0.85);
