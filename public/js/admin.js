@@ -525,7 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const playStoreLink = playStoreInputs[index] ? playStoreInputs[index].value.trim() : '';
       const appStoreLink = appStoreInputs[index] ? appStoreInputs[index].value.trim() : '';
       const projectId = projectIdInputs[index] ? projectIdInputs[index].value.trim() : '';
-      const privacyPolicy = privacyPolicyInputs[index] ? privacyPolicyInputs[index].value.trim() : '';
+      const rawPolicy = privacyPolicyInputs[index] ? privacyPolicyInputs[index].value.trim() : '';
+      const privacyPolicy = decodeHtml(rawPolicy);
 
       if (includeAll || title) {
         updatedProjects.push({

@@ -56,7 +56,14 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(mongoSanitize());
 
 // DATA SANITIZATION AGAINST XSS
-app.use(xss());
+const xssMiddleware = xss();
+app.use((req, res, next) => {
+    // Exclude authenticated admin profile updates where rich HTML is authored
+    if (req.originalUrl && req.originalUrl.startsWith('/api/v1/admin/profile')) {
+        return next();
+    }
+    xssMiddleware(req, res, next);
+});
 
 // PREVENT PARAMETER POLLUTION
 app.use(hpp());

@@ -7,6 +7,28 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const cache = require('../utils/cache');
 
+const decodeHtmlEntities = str => {
+    if (!str || typeof str !== 'string') return '';
+    return str
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&amp;/g, '&');
+};
+
+const cleanProjects = projects => {
+    if (!Array.isArray(projects)) return [];
+    return projects.map(proj => {
+        if (!proj) return proj;
+        const p = typeof proj.toObject === 'function' ? proj.toObject() : { ...proj };
+        if (p.privacyPolicy && typeof p.privacyPolicy === 'string') {
+            p.privacyPolicy = decodeHtmlEntities(p.privacyPolicy);
+        }
+        return p;
+    });
+};
+
 let sharp;
 try {
     // eslint-disable-next-line global-require
@@ -210,7 +232,7 @@ exports.getProfile = catchAsync(async (req, res, next) => {
                 statCrashFree: user.statCrashFree || '99.9%',
                 statUsers: user.statUsers || '100k+',
                 skills: user.skills || [],
-                projects: user.projects || [],
+                projects: cleanProjects(user.projects),
                 experiences: user.experiences || []
             }
         }
@@ -255,19 +277,8 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
     }
     if (req.body.projects !== undefined) {
         try {
-            fieldsToUpdate.projects = typeof req.body.projects === 'string' ? JSON.parse(req.body.projects) : req.body.projects;
-            if (Array.isArray(fieldsToUpdate.projects)) {
-                fieldsToUpdate.projects.forEach(proj => {
-                    if (proj.privacyPolicy && typeof proj.privacyPolicy === 'string') {
-                        proj.privacyPolicy = proj.privacyPolicy
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>')
-                            .replace(/&quot;/g, '"')
-                            .replace(/&#039;/g, "'")
-                            .replace(/&amp;/g, '&');
-                    }
-                });
-            }
+            const rawProjects = typeof req.body.projects === 'string' ? JSON.parse(req.body.projects) : req.body.projects;
+            fieldsToUpdate.projects = cleanProjects(rawProjects);
         } catch (err) {
             fieldsToUpdate.projects = req.body.projects;
         }
@@ -328,7 +339,7 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
                 statCrashFree: updatedUser.statCrashFree || '99.9%',
                 statUsers: updatedUser.statUsers || '100k+',
                 skills: updatedUser.skills || [],
-                projects: updatedUser.projects || [],
+                projects: cleanProjects(updatedUser.projects),
                 experiences: updatedUser.experiences || []
             }
         }
@@ -387,7 +398,7 @@ exports.getPublicProfile = catchAsync(async (req, res, next) => {
         statCrashFree: user && user.statCrashFree ? user.statCrashFree : '99.9%',
         statUsers: user && user.statUsers ? user.statUsers : '100k+',
         skills: user && user.skills ? user.skills : [],
-        projects: user && user.projects ? user.projects : [],
+        projects: cleanProjects(user && user.projects ? user.projects : []),
         experiences: user && user.experiences ? user.experiences : []
     };
 
